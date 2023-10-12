@@ -4,18 +4,17 @@ import whisper
 import pyaudio
 import numpy as np
 import os
-from transformers import AutoTokenizer
 import transformers
 import torch
 
 model = "meta-llama/Llama-2-7b-chat-hf"
 
-tokenizer = AutoTokenizer.from_pretrained(model)
-pipeline = transformers.pipeline(
+# tokenizer = AutoTokenizer.from_pretrained(model)
+llama_pipeline = transformers.pipeline(
     "text-generation",
     model=model,
     torch_dtype=torch.float32,
-    device_map="auto",
+    device=0 if torch.cuda.is_available() else -1,  # Use GPU if available, else CPU
 )
 
 st.title('Real-time Speech to Text App')
@@ -95,15 +94,15 @@ if response:
     st.write("Response: " + transcription)
     prompt = transcription
 
-    def get_completion_llama(prompt):
-        max_length = 150  # You can change this value based on your requirements
-        input_ids = tokenizer.encode(prompt, return_tensors="pt")
-        out = pipeline(prompt)
+    def get_llama_response(prompt):
+        """Generates a response using the Llama model based on the provided prompt."""
+        max_length = 150  # You can adjust this based on your requirements
+        out = llama_pipeline(prompt, max_length=max_length)
         response = out[0]['generated_text']
         return response
 
-    response = get_completion_llama(prompt)
-    st.write(response)
+    response = get_llama_response(transcription)
+    st.write("Llama's Response: " + response)
 
     
 stream.stop_stream()
