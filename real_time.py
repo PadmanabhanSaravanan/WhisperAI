@@ -11,7 +11,7 @@ openai.api_key = openai_key
 
 st.title('Real-time Speech to Text App')
 
-model = whisper.load_model("base")
+model = whisper.load_model("tiny")
 language = "en"
 
 CHUNK_SIZE = 1024
@@ -41,9 +41,13 @@ def save_to_txt(temp_transcriptions):
                 with open(temp_text_path, 'w') as file:
                     file.write(temp_transcriptions)
 
-# Start recording button
-start = st.button('Start Recording')
-stop = st.button('Stop Recording')
+# create 3 buttons in a row
+col1, col2, col3 = st.columns(3)
+
+# Place a button in each column
+start = col1.button('Start Recording')
+stop = col2.button('Stop Recording')
+response = col3.button('Response')
 
 if start:
     st.write('Recording...')
@@ -74,8 +78,12 @@ if start:
 
 if stop:
     transcription = read_from_txt()
+    st.write("Recording stopped!...")
     st.write("Transcription: " + transcription)
 
+if response:
+    transcription = read_from_txt()
+    st.write("Response: " + transcription)
     prompt = transcription
 
     def get_completion(prompt, model="gpt-3.5-turbo"):
@@ -90,8 +98,6 @@ if stop:
     response = get_completion(prompt)
     st.write(response)
     
-    os.remove(temp_text_path)
-
 stream.stop_stream()
 stream.close()
 p.terminate()
