@@ -48,7 +48,7 @@ if record:
 
 audio_exists = os.path.exists(temp_audio_path)
 if st.sidebar.button("Transcribe Audio"):
-    if audio_exists:
+    if audio_exists:    
         try:
             transcription = model.transcribe(temp_audio_path)
             st.sidebar.success("Transcription Complete")

@@ -3,15 +3,16 @@ import speech_recognition as sr
 import whisper
 import pyaudio
 import numpy as np
+from secret_key import cohere_api_key
+import os
 import openai
-
-# Set up your OpenAI API key
-openai.api_key = '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'
-
+from secret_key import openai_key
+openai.api_key = openai_key
 
 st.title('Real-time Speech to Text App')
 
 model = whisper.load_model("base")
+language = "en"
 
 CHUNK_SIZE = 1024
 FORMAT = pyaudio.paInt16
@@ -23,11 +24,26 @@ stream = p.open(format=FORMAT, channels=CHANNELS, rate=RATE, input=True, frames_
 
 r = sr.Recognizer()
 
+temp_transcriptions = ""
+
+# Create a temporary directory for uploaded audio
+TEMP_DIR = "temp_text"
+if not os.path.exists(TEMP_DIR):
+    os.makedirs(TEMP_DIR)
+
+temp_text_path = os.path.abspath(os.path.join(TEMP_DIR, "transcription.txt"))
+
+def read_from_txt():
+        with open(temp_text_path, 'r') as file:
+            return file.read()
+
+def save_to_txt(temp_transcriptions):
+                with open(temp_text_path, 'w') as file:
+                    file.write(temp_transcriptions)
+
 # Start recording button
 start = st.button('Start Recording')
 stop = st.button('Stop Recording')
-
-transcriptions = ""
 
 if start:
     st.write('Recording...')
@@ -45,14 +61,23 @@ if start:
             audio_np = np.frombuffer(audio.frame_data, dtype=np.int16).astype(np.float32) / 32768
             
             try:
-                transcription = whisper.transcribe(model=model, audio=audio_np, fp16=False)
-                transcriptions += transcription["text"] + " "
+                transcription = whisper.transcribe(model=model, language=language ,audio=audio_np, fp16=False)
+                temp_transcriptions += (transcription["text"])
                 st.write(transcription["text"])
+                save_to_txt(temp_transcriptions)
             except Exception as e:
                 st.error(f"Error during transcription: {e}")
             
             audio_data = []  # Clear buffer
+            # os.remove(temp_text_path)
+
+
 if stop:
+    transcription = read_from_txt()
+    st.write("Transcription: " + transcription)
+
+    prompt = transcription
+
     def get_completion(prompt, model="gpt-3.5-turbo"):
         messages = [{"role": "user", "content": prompt}]
         response = openai.ChatCompletion.create(
@@ -61,12 +86,11 @@ if stop:
             temperature=0, # this is the degree of randomness of the model's output
         )
         return response.choices[0].message["content"]
-    st.write("Recording stopped.")
-    st.write("Transcriptions: " + transcriptions)
-    prompt = transcriptions
 
     response = get_completion(prompt)
     st.write(response)
+    
+    os.remove(temp_text_path)
 
 stream.stop_stream()
 stream.close()
