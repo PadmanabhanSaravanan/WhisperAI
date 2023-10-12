@@ -3,11 +3,20 @@ import speech_recognition as sr
 import whisper
 import pyaudio
 import numpy as np
-from secret_key import cohere_api_key
 import os
-import openai
-from secret_key import openai_key
-openai.api_key = openai_key
+from transformers import AutoTokenizer
+import transformers
+import torch
+
+model = "meta-llama/Llama-2-7b-chat-hf"
+
+tokenizer = AutoTokenizer.from_pretrained(model)
+pipeline = transformers.pipeline(
+    "text-generation",
+    model=model,
+    torch_dtype=torch.float32,
+    device_map="auto",
+)
 
 st.title('Real-time Speech to Text App')
 
@@ -86,17 +95,16 @@ if response:
     st.write("Response: " + transcription)
     prompt = transcription
 
-    def get_completion(prompt, model="gpt-3.5-turbo"):
-        messages = [{"role": "user", "content": prompt}]
-        response = openai.ChatCompletion.create(
-            model=model,
-            messages=messages,
-            temperature=0, # this is the degree of randomness of the model's output
-        )
-        return response.choices[0].message["content"]
+    def get_completion_llama(prompt):
+        max_length = 150  # You can change this value based on your requirements
+        input_ids = tokenizer.encode(prompt, return_tensors="pt")
+        out = pipeline(prompt)
+        response = out[0]['generated_text']
+        return response
 
-    response = get_completion(prompt)
+    response = get_completion_llama(prompt)
     st.write(response)
+
     
 stream.stop_stream()
 stream.close()
