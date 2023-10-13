@@ -3,15 +3,14 @@ import speech_recognition as sr
 import whisper
 import pyaudio
 import numpy as np
-from secret_key import cohere_api_key
 import os
 import openai
 from secret_key import openai_key
 openai.api_key = openai_key
 
-st.title('Real-time Speech to Text App')
+st.title('StreamVoice Analytics')
 
-model = whisper.load_model("tiny")
+model = whisper.load_model("base")
 language = "en"
 
 CHUNK_SIZE = 1024
@@ -45,9 +44,9 @@ def save_to_txt(temp_transcriptions):
 col1, col2, col3 = st.columns(3)
 
 # Place a button in each column
-start = col1.button('Start Recording')
-stop = col2.button('Stop Recording')
-response = col3.button('Response')
+start = col1.button('Voice On')
+stop = col2.button('Voice Off')
+response = col3.button('Ask AI')
 
 if start:
     st.write('Recording...')
